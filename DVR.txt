@@ -1,0 +1,121 @@
+6. A company connects three branch offices through routers. Write a program in
+C/C++/Python/Java to simulate the Distance Vector Routing Algorithm and find the shortest
+path between routers.
+
+
+
+#include <iostream>
+#include <vector>
+#include <climits>
+using namespace std;
+
+const int INF = 9999;
+
+int main() {
+    int n;
+    cout << "Enter number of routers: ";
+    cin >> n;
+
+    vector<vector<int>> cost(n, vector<int>(n));
+
+    cout << "Enter cost matrix (9999 for no direct link):\n";
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> cost[i][j];
+        }
+    }
+
+    vector<vector<int>> dist = cost;
+    vector<vector<int>> nextHop(n, vector<int>(n, -1));
+
+    // Initialize next hops
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i != j && cost[i][j] != INF)
+                nextHop[i][j] = j;
+        }
+    }
+
+    // Distance Vector updates
+    bool updated;
+    do {
+        updated = false;
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                for (int k = 0; k < n; k++) {
+                    if (dist[i][k] != INF &&
+                        dist[k][j] != INF &&
+                        dist[i][k] + dist[k][j] < dist[i][j]) {
+
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                        nextHop[i][j] = nextHop[i][k];
+                        updated = true;
+                    }
+                }
+            }
+        }
+    } while (updated);
+
+    // Display routing tables
+    for (int i = 0; i < n; i++) {
+        cout << "\nRouting Table for Router " << i + 1 << ":\n";
+        cout << "Destination\tCost\tNext Hop\n";
+
+        for (int j = 0; j < n; j++) {
+            cout << j + 1 << "\t\t";
+
+            if (dist[i][j] == INF) {
+                cout << "INF\t-\n";
+            } else {
+                cout << dist[i][j] << "\t";
+
+                if (i == j)
+                    cout << "-\n";
+                else
+                    cout << nextHop[i][j] + 1 << "\n";
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+Sample input
+Use three routers representing three branch offices.
+Enter number of routers: 3
+Enter cost matrix (9999 for no direct link):
+0 2 7
+2 0 3
+7 3 0
+Sample output
+Routing Table for Router 1:
+Destination    Cost    Next Hop
+1              0       -
+2              2       2
+3              5       2
+
+Routing Table for Router 2:
+Destination    Cost    Next Hop
+1              2       1
+2              0       -
+3              3       3
+
+Routing Table for Router 3:
+Destination    Cost    Next Hop
+1              5       2
+2              3       2
+3              0       -
+Explanation
+1.	Initialization: Each router knows the cost to itself and its directly connected neighbors.
+2.	Distance vector exchange: Routers use their neighbors' distance information to discover better routes.
+3.	Route update: The cost is updated when an alternative route is cheaper:
+\[
+D_x(y)=\min_v{c(x,v)+D_v(y)}
+\]
+4.	Convergence: Updates continue until no routing-table entry changes.
+5.	Output: Each routing table shows the destination, minimum path cost, and next-hop router.
+For this example, the shortest path from Router 1 to Router 3 is Router 1 → Router 2 → Router 3, with a total cost of \(2+3=\boxed{5}\), instead of the direct cost of 7.
+Viva point: Distance Vector Routing is a distributed routing algorithm in which routers exchange distance information with their neighbors. RIP is a well-known distance-vector routing protocol.

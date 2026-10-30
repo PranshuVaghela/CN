@@ -1,0 +1,215 @@
+8. A college wants to develop a client-server application to perform mathematical calculations
+remotely. Write a program in C/C++/Python/Java using TCP socket programming in which the
+client sends two numbers and an arithmetic operator (+, −, ×, ÷) to the server. The server
+performs the calculation and sends the result back to the client.
+
+
+SERVER(server.cpp)
+
+#include <iostream>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <string>
+#include <sstream>
+using namespace std;
+
+int main() {
+    int serverSocket, clientSocket;
+    struct sockaddr_in serverAddr;
+    char buffer[1024] = {0};
+
+    // Create TCP socket
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (serverSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+    // Bind socket
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr,
+             sizeof(serverAddr)) < 0) {
+        perror("Bind failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    // Listen for client
+    listen(serverSocket, 5);
+    cout << "Server waiting for client..." << endl;
+
+    socklen_t addrLen = sizeof(serverAddr);
+    clientSocket = accept(serverSocket,
+                          (struct sockaddr*)&serverAddr, &addrLen);
+
+    if (clientSocket < 0) {
+        perror("Accept failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    // Receive numbers and operator
+    ssize_t bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytes <= 0) {
+        cout << "No data received." << endl;
+        close(clientSocket);
+        close(serverSocket);
+        return 1;
+    }
+
+    buffer[bytes] = '\0';
+
+    double a, b, result = 0;
+    char op;
+    bool valid = true;
+    stringstream ss(buffer);
+    ss >> a >> op >> b;
+
+    // Perform calculation
+    switch (op) {
+        case '+':
+            result = a + b;
+            break;
+        case '-':
+            result = a - b;
+            break;
+        case '*':
+            result = a * b;
+            break;
+        case '/':
+            if (b == 0) {
+                valid = false;
+                break;
+            }
+            result = a / b;
+            break;
+        default:
+            valid = false;
+    }
+
+    string response;
+
+    if (!ss || !valid) {
+        response = "Error: Invalid input or division by zero.";
+    } else {
+        response = "Result = " + to_string(result);
+    }
+
+    // Send result to client
+    send(clientSocket, response.c_str(), response.size(), 0);
+
+    cout << "Received: " << buffer << endl;
+    cout << response << endl;
+
+    close(clientSocket);
+    close(serverSocket);
+
+    return 0;
+}
+
+CLIENT(client.cpp)
+
+#include <iostream>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <string>
+using namespace std;
+
+int main() {
+    int clientSocket;
+    struct sockaddr_in serverAddr;
+    char buffer[1024] = {0};
+
+    // Create TCP socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (clientSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+    // Connect to server
+    if (connect(clientSocket, (struct sockaddr*)&serverAddr,
+                sizeof(serverAddr)) < 0) {
+        perror("Connection failed");
+        close(clientSocket);
+        return 1;
+    }
+
+    double a, b;
+    char op;
+
+    cout << "Enter first number: ";
+    cin >> a;
+
+    cout << "Enter operator (+, -, *, /): ";
+    cin >> op;
+
+    cout << "Enter second number: ";
+    cin >> b;
+
+    // Send calculation request
+    string message = to_string(a) + " " + op + " " + to_string(b);
+    send(clientSocket, message.c_str(), message.size(), 0);
+
+    // Receive result
+    ssize_t bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytes > 0) {
+        buffer[bytes] = '\0';
+        cout << "Server response: " << buffer << endl;
+    } else {
+        cout << "No response received from server." << endl;
+    }
+
+    close(clientSocket);
+
+    return 0;
+}
+
+3. How to execute on macOS
+Save both programs in the same folder.
+Terminal 1 — Start the server
+g++ server.cpp -o server
+./server
+Terminal 2 — Run the client
+g++ client.cpp -o client
+./client
+4. Sample output
+Client terminal
+Enter first number: 20
+Enter operator (+, -, *, /): *
+Enter second number: 5
+Server response: Result = 100.000000
+Server terminal
+Server waiting for client...
+Received: 20.000000 * 5.000000
+Result = 100.000000
+5. Algorithm
+1.	The server creates a TCP socket and binds it to port 8080.
+2.	The server listens for incoming client connections and accepts one.
+3.	The client connects to the server and inputs two numbers and an operator.
+4.	The client sends the calculation request through the socket.
+5.	The server performs the requested arithmetic operation.
+6.	The server sends the result back to the client.
+7.	The client displays the result and closes the connection.
+6. Important viva questions
+Question	Answer
+What is TCP?	A connection-oriented transport-layer protocol that provides reliable, ordered byte-stream delivery.
+What is a socket?	An endpoint used for communication between processes over a network.
+Why use htons(8080)?	It converts the port number to network byte order.
+Why is bind() used?	To associate the server socket with a local address and port.
+What happens when the divisor is zero?	The server returns an error instead of performing division.
+What does 127.0.0.1 mean?	It is the loopback address used to communicate with the same computer.
+Result: The client sends two numbers and an operator to the server over TCP, and the server returns the calculated result.

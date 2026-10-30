@@ -1,0 +1,58 @@
+4.An organization wants to divide the network 192.168.1.0/24 into two subnets. Write a program
+in C / C++ / Python / Java to calculate the subnet mask and the number of usable host addresses for
+each subnet.
+
+
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string ip = "192.168.1.0";
+
+    int originalPrefix = 24;
+    int requiredSubnets = 2;
+
+    // Calculate borrowed bits
+    int borrowedBits = 0;
+    while ((1 << borrowedBits) < requiredSubnets)
+        borrowedBits++;
+
+    int newPrefix = originalPrefix + borrowedBits;
+    int hostBits = 32 - newPrefix;
+
+    // Calculate usable hosts
+    int totalHosts = (1 << hostBits);
+    int usableHosts = totalHosts - 2;
+
+    cout << "Original Network: " << ip << "/24" << endl;
+    cout << "Number of Subnets: " << requiredSubnets << endl;
+    cout << "New Prefix: /" << newPrefix << endl;
+    cout << "Subnet Mask: 255.255.255.128" << endl;
+    cout << "Usable Hosts per Subnet: " << usableHosts << endl;
+
+    cout << "\nSubnet 1:" << endl;
+    cout << "Network Address: 192.168.1.0" << endl;
+    cout << "First Usable IP: 192.168.1.1" << endl;
+    cout << "Last Usable IP: 192.168.1.126" << endl;
+    cout << "Broadcast Address: 192.168.1.127" << endl;
+
+    cout << "\nSubnet 2:" << endl;
+    cout << "Network Address: 192.168.1.128" << endl;
+    cout << "First Usable IP: 192.168.1.129" << endl;
+    cout << "Last Usable IP: 192.168.1.254" << endl;
+    cout << "Broadcast Address: 192.168.1.255" << endl;
+
+    return 0;
+}
+
+
+
+Explanation for viva
+	Original subnet mask: /24 = 255.255.255.0.
+	Borrowed bits: 1 bit, because 2^1=2 subnets.
+	New prefix: /25, giving subnet mask 255.255.255.128.
+	Total addresses per subnet: 2^(32-25)=128.
+	Usable host addresses: \(128-2=\boxed{126}\). Two addresses are reserved for the network and broadcast addresses.
+Conclusion: The /24 network is divided into two /25 subnets, each supporting 126 usable host addresses

@@ -1,0 +1,170 @@
+9. A college wants to develop a client-server application for string conversion. Write a program
+in C/C++/Python/Java using UDP socket programming in which the client sends a string to the
+server, the server converts the string from lowercase to uppercase, and sends the converted
+string back to the client.
+SERVER(server.cpp)
+
+#include <iostream>
+#include <cstring>
+#include <cctype>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+using namespace std;
+
+int main() {
+    int serverSocket;
+    struct sockaddr_in serverAddr, clientAddr;
+    char buffer[1024];
+
+    // Create UDP socket
+    serverSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (serverSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    // Configure server address
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+    // Bind socket
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr,
+             sizeof(serverAddr)) < 0) {
+        perror("Bind failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    cout << "UDP Server waiting for message..." << endl;
+
+    socklen_t clientLen = sizeof(clientAddr);
+
+    // Receive string from client
+    ssize_t bytes = recvfrom(serverSocket, buffer,
+                             sizeof(buffer) - 1, 0,
+                             (struct sockaddr*)&clientAddr,
+                             &clientLen);
+
+    if (bytes < 0) {
+        perror("Receive failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    buffer[bytes] = '\0';
+
+    cout << "Received string: " << buffer << endl;
+
+    // Convert lowercase to uppercase
+    for (int i = 0; i < bytes; i++) {
+        buffer[i] = toupper((unsigned char)buffer[i]);
+    }
+
+    cout << "Uppercase string: " << buffer << endl;
+
+    // Send converted string back to client
+    sendto(serverSocket, buffer, bytes, 0,
+           (struct sockaddr*)&clientAddr, clientLen);
+
+    close(serverSocket);
+    return 0;
+}
+
+
+CLIENT(client.cpp)
+
+
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+using namespace std;
+
+int main() {
+    int clientSocket;
+    struct sockaddr_in serverAddr;
+    char buffer[1024];
+
+    // Create UDP socket
+    clientSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (clientSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    // Configure server address
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+    string message;
+
+    cout << "Enter a string: ";
+    getline(cin, message);
+
+    // Send string to server
+    sendto(clientSocket, message.c_str(), message.length(), 0,
+           (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+
+    cout << "Message sent to server." << endl;
+
+    // Receive uppercase string
+    socklen_t serverLen = sizeof(serverAddr);
+
+    ssize_t bytes = recvfrom(clientSocket, buffer,
+                             sizeof(buffer) - 1, 0,
+                             (struct sockaddr*)&serverAddr,
+                             &serverLen);
+
+    if (bytes >= 0) {
+        buffer[bytes] = '\0';
+        cout << "Converted string: " << buffer << endl;
+    } else {
+        perror("Receive failed");
+    }
+
+    close(clientSocket);
+    return 0;
+}
+
+
+3. How to execute on macOS
+Save both programs in the same folder.
+Terminal 1 — Start the server
+g++ server.cpp -o server
+./server
+Terminal 2 — Run the client
+g++ client.cpp -o client
+./client
+4. Sample output
+Client terminal
+Enter a string: hello college
+Message sent to server.
+Converted string: HELLO COLLEGE
+Server terminal
+UDP Server waiting for message...
+Received string: hello college
+Uppercase string: HELLO COLLEGE
+5. Algorithm
+1.	Create a UDP socket on the server and bind it to port 8080.
+2.	Create a UDP socket on the client.
+3.	The client sends a string to the server using sendto().
+4.	The server receives the string using recvfrom().
+5.	The server converts lowercase characters to uppercase using toupper().
+6.	The server sends the converted string back using sendto().
+7.	The client receives and displays the converted string.
+6. Important viva questions
+Question	Answer
+What is UDP?	User Datagram Protocol; a connectionless transport-layer protocol.
+What is the difference between TCP and UDP?	TCP provides reliable, ordered delivery; UDP does not guarantee delivery or ordering.
+Why use sendto()?	To send a datagram to a specified destination address.
+Why use recvfrom()?	To receive a datagram and obtain the sender's address.
+Does UDP require a connection?	No, it is connectionless.
+What does toupper() do?	It converts a lowercase character to uppercase.
+What is port 8080?	The port used by this program to receive UDP datagrams.
+Result: The client sends a string to the server using UDP, and the server returns the uppercase version of the string.

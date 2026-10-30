@@ -1,0 +1,115 @@
+2. A bank transmits customer transaction data between two computers. Write a program in
+C/C++/Python/Java to implement Hamming Code, introduce a single-bit transmission error, detect
+the error, and correct the corrupted bit at the receiver.
+
+
+CODE : 
+
+
+#include <iostream>
+#include <vector>
+#include <cmath>
+using namespace std;
+
+int main() {
+    string data;
+    cout << "Enter data bits: ";
+    cin >> data;
+
+    int m = data.length();
+    int r = 0;
+
+    // Calculate number of parity bits
+    while (pow(2, r) < m + r + 1)
+        r++;
+
+    int n = m + r;
+    vector<int> code(n + 1, 0);
+
+    // Place data bits in non-power-of-2 positions
+    int j = 0;
+    for (int i = 1; i <= n; i++) {
+        if ((i & (i - 1)) != 0)
+            code[i] = data[j++] - '0';
+    }
+
+    // Calculate even parity bits
+    for (int i = 0; i < r; i++) {
+        int p = 1 << i;
+        int parity = 0;
+
+        for (int k = 1; k <= n; k++) {
+            if (k & p)
+                parity ^= code[k];
+        }
+
+        code[p] = parity;
+    }
+
+    cout << "Hamming Code: ";
+    for (int i = 1; i <= n; i++)
+        cout << code[i];
+    cout << endl;
+
+    // Introduce a single-bit error
+    int errorPos;
+    cout << "Enter error position (1-" << n << "): ";
+    cin >> errorPos;
+
+    if (errorPos < 1 || errorPos > n) {
+        cout << "Invalid error position!" << endl;
+        return 0;
+    }
+
+    code[errorPos] ^= 1;
+
+    cout << "Received Code: ";
+    for (int i = 1; i <= n; i++)
+        cout << code[i];
+    cout << endl;
+
+    // Detect error using syndrome
+    int syndrome = 0;
+
+    for (int i = 0; i < r; i++) {
+        int p = 1 << i;
+        int parity = 0;
+
+        for (int k = 1; k <= n; k++) {
+            if (k & p)
+                parity ^= code[k];
+        }
+
+        if (parity)
+            syndrome += p;
+    }
+
+    if (syndrome == 0) {
+        cout << "No error detected." << endl;
+    } else {
+        cout << "Error detected at position: "
+             << syndrome << endl;
+
+        // Correct the corrupted bit
+        code[syndrome] ^= 1;
+
+        cout << "Corrected Code: ";
+        for (int i = 1; i <= n; i++)
+            cout << code[i];
+        cout << endl;
+    }
+
+    return 0;
+}
+
+
+
+
+
+How it works
+	Parity bit calculation: The program calculates the number of parity bits required using 2^r≥m+r+1, where m is the number of data bits.
+	Code generation: Parity bits occupy positions 1, 2, 4, 8, etc. Data bits occupy the remaining positions.
+	Error introduction: The selected bit is flipped using XOR (^= 1).
+	Error detection: The receiver recalculates the parity bits. The resulting syndrome identifies the erroneous bit position.
+	Error correction: The receiver flips the identified bit again to restore the original code.
+Viva point: Standard Hamming code can correct a single-bit error. A nonzero syndrome identifies the error position, but a zero syndrome does not guarantee that no error occurred if multiple bits are corrupted.

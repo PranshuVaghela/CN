@@ -1,0 +1,149 @@
+7. A college wants to develop a client-server application for sending messages between two
+computers. Write a program in C/C++/Python/Java using TCP socket programming to send a
+message from the client to the server and display the received message.
+
+SERVER(server.cpp) : 
+
+
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+using namespace std;
+
+int main() {
+    int serverSocket, clientSocket;
+    struct sockaddr_in serverAddr;
+    char buffer[1024] = {0};
+
+    // Create TCP socket
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (serverSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+    // Bind socket to IP and port
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr,
+             sizeof(serverAddr)) < 0) {
+        perror("Bind failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    // Listen for client connections
+    listen(serverSocket, 5);
+    cout << "Server waiting for client..." << endl;
+
+    socklen_t addrLen = sizeof(serverAddr);
+    clientSocket = accept(serverSocket,
+                          (struct sockaddr*)&serverAddr, &addrLen);
+
+    if (clientSocket < 0) {
+        perror("Accept failed");
+        close(serverSocket);
+        return 1;
+    }
+
+    // Receive message from client
+    ssize_t bytesReceived = recv(clientSocket, buffer,
+                                 sizeof(buffer) - 1, 0);
+
+    if (bytesReceived > 0) {
+        buffer[bytesReceived] = '\0';
+        cout << "Message received: " << buffer << endl;
+    }
+
+    close(clientSocket);
+    close(serverSocket);
+
+    return 0;
+}
+
+
+
+
+
+CLIENT(client.cpp) : 
+
+
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+using namespace std;
+
+int main() {
+    int clientSocket;
+    struct sockaddr_in serverAddr;
+    string message;
+
+    // Create TCP socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (clientSocket < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8080);
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+    // Connect to server
+    if (connect(clientSocket, (struct sockaddr*)&serverAddr,
+                sizeof(serverAddr)) < 0) {
+        perror("Connection failed");
+        close(clientSocket);
+        return 1;
+    }
+
+    cout << "Enter message: ";
+    getline(cin, message);
+
+    // Send message to server
+    send(clientSocket, message.c_str(), message.length(), 0);
+
+    cout << "Message sent successfully." << endl;
+
+    close(clientSocket);
+
+    return 0;
+}
+
+3. How to execute on macOS
+Save both programs in the same folder.
+Terminal 1 — Compile and start the server
+g++ server.cpp -o server
+./server
+Terminal 2 — Compile and run the client
+g++ client.cpp -o client
+./client
+Enter a message in the client terminal, such as Hello Server!.
+Expected output:
+Client terminal
+Enter message: Hello Server!
+Message sent successfully.
+Server terminal
+Server waiting for client...
+Message received: Hello Server!
+Both programs run on the same computer using 127.0.0.1 (localhost). To test between two computers, replace that address in the client with the server computer's LAN IP address and allow TCP port 8080 through its firewall.
+4. Explanation for viva
+Function	Purpose
+socket()	Creates a TCP socket.
+bind()	Assigns an IP address and port to the server.
+listen()	Waits for incoming connections.
+accept()	Accepts a client connection.
+connect()	Connects the client to the server.
+send()	Sends the message.
+recv()	Receives the message.
+close()	Closes the socket.
+Result: The client successfully sends a message using TCP, and the server receives and displays it.
+Remember: TCP is connection-oriented and provides reliable, ordered byte-stream delivery. This simple example assumes the message fits in one recv() call; production programs should handle partial sends and receives
